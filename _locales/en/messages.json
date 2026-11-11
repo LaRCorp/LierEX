@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "LierEX"
+  },
+  "extDescription": {
+    "message": "One-click import of movies, series, and games from Kinopoisk, IMDb, TMDb, Letterboxd, Steam, Epic Games, GOG, and Itch.io into Lierkour."
+  },
+  "actionTitle": {
+    "message": "Add to Lierkour"
+  }
+}

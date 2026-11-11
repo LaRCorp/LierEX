@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LierEX</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="header">
+        <div class="brand">
+          <img src="icons/icon48.png" alt="LierEX" class="brand-logo" />
+          <div class="brand-text">
+            <span class="brand-name">LierEX</span>
+            <span class="brand-version">v1.1</span>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <span
+            id="server-dot"
+            class="status-dot status-dot--checking"
+            title="Проверка связи с Lierkour..."
+          ></span>
+          <button
+            id="toggle-settings-btn"
+            type="button"
+            class="icon-btn"
+            title="Настройки токена LierEX"
+            aria-label="Настройки токена"
+          >
+            ⚙
+          </button>
+        </div>
+      </header>
+
+      <section id="token-panel" class="token-panel hidden">
+        <label for="token-input" class="token-label">
+          Токен доступа (из Настроек Lierkour)
+        </label>
+        <div class="token-row">
+          <input
+            id="token-input"
+            type="password"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="Вставьте X-LierEX-Token..."
+            class="token-input"
+          />
+          <button id="save-token-btn" type="button" class="token-save-btn">
+            OK
+          </button>
+        </div>
+      </section>
+
+      <main id="content" class="content">
+        <div id="loading-state" class="state-box">
+          <div class="spinner"></div>
+          <p class="state-text">Анализ страницы...</p>
+        </div>
+
+        <div id="error-state" class="state-box hidden">
+          <p id="error-message" class="error-text"></p>
+        </div>
+
+        <div id="preview-state" class="preview hidden">
+          <div class="preview-card">
+            <div class="poster-wrap">
+              <img id="poster-img" class="poster-img hidden" alt="Обложка" />
+              <div id="poster-fallback" class="poster-fallback">🎬</div>
+            </div>
+            <div class="meta">
+              <div class="badges">
+                <span id="type-badge" class="badge badge--movie">Фильм</span>
+                <span id="year-badge" class="badge badge--year hidden"></span>
+              </div>
+              <h1 id="media-title" class="media-title"></h1>
+              <p id="media-original" class="media-original hidden"></p>
+              <p id="media-details" class="media-details hidden"></p>
+              <p id="media-desc" class="media-desc hidden"></p>
+            </div>
+          </div>
+
+          <div class="status-picker">
+            <label for="status-select" class="status-label">Статус</label>
+            <select id="status-select" class="status-select"></select>
+          </div>
+
+          <button id="import-btn" type="button" class="import-btn">
+            Добавить в Lierkour
+          </button>
+        </div>
+      </main>
+
+      <div id="feedback-banner" class="feedback hidden"></div>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
+

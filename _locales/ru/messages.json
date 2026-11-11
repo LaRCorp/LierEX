@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "LierEX"
+  },
+  "extDescription": {
+    "message": "Быстрый импорт фильмов, сериалов и игр с Кинопоиска, IMDb, TMDb, Letterboxd, Steam, Epic Games, GOG и Itch.io в Lierkour."
+  },
+  "actionTitle": {
+    "message": "Добавить в Lierkour"
+  }
+}
