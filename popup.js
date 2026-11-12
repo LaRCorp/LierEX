@@ -1,4 +1,14 @@
 const TOKEN_STORAGE_KEY = 'lierex_token';
+const SUPPORTED_HOSTS = [
+  'kinopoisk.ru',
+  'imdb.com',
+  'themoviedb.org',
+  'letterboxd.com',
+  'store.steampowered.com',
+  'epicgames.com',
+  'gog.com',
+  'itch.io',
+];
 
 const IS_RU = (
   (typeof chrome !== 'undefined' && chrome?.i18n?.getUILanguage
@@ -20,6 +30,7 @@ const tokenPanel = document.getElementById('token-panel');
 const tokenLabel = document.querySelector('label[for="token-input"]');
 const tokenInput = document.getElementById('token-input');
 const saveTokenBtn = document.getElementById('save-token-btn');
+const tokenHint = document.getElementById('token-hint');
 
 const loadingState = document.getElementById('loading-state');
 const loadingText = document.querySelector('#loading-state .state-text');
@@ -38,6 +49,8 @@ const mediaDesc = document.getElementById('media-desc');
 const statusLabel = document.querySelector('label[for="status-select"]');
 const statusSelect = document.getElementById('status-select');
 const importBtn = document.getElementById('import-btn');
+const copyJsonBtn = document.getElementById('copy-json-btn');
+const downloadJsonBtn = document.getElementById('download-json-btn');
 const feedbackBanner = document.getElementById('feedback-banner');
 
 let extractedPayload = null;
@@ -75,6 +88,12 @@ function applyStaticLocale() {
     );
   }
   tokenInput.placeholder = t('Вставьте X-LierEX-Token...', 'Paste X-LierEX-Token...');
+  if (tokenHint) {
+    tokenHint.textContent = t(
+      'Нужен только для отправки в Lierkour (127.0.0.1:8765). Копирование и экспорт JSON работают автономно.',
+      'Only needed to sync with Lierkour desktop app (127.0.0.1:8765). Copy & Save JSON work offline.'
+    );
+  }
   toggleSettingsBtn.title = t('Настройки токена LierEX', 'LierEX token settings');
   toggleSettingsBtn.setAttribute('aria-label', toggleSettingsBtn.title);
   if (loadingText) {
@@ -85,6 +104,20 @@ function applyStaticLocale() {
   }
   posterImg.alt = t('Обложка', 'Poster');
   importBtn.textContent = t('Добавить в Lierkour', 'Add to Lierkour');
+  if (copyJsonBtn) {
+    copyJsonBtn.textContent = t('Копировать JSON', 'Copy JSON');
+  }
+  if (downloadJsonBtn) {
+    downloadJsonBtn.textContent = t('Скачать .json', 'Save .json');
+  }
+}
+
+function buildPayloadWithStatus() {
+  if (!extractedPayload) return null;
+  return {
+    ...extractedPayload,
+    status: statusSelect.value || 'want_to_watch',
+  };
 }
 
 function populateStatusOptions(mediaType) {
@@ -283,7 +316,10 @@ async function refreshServerStatus() {
     }
   } else {
     serverDot.className = 'status-dot status-dot--offline';
-    serverDot.title = t('Lierkour не запущен', 'Lierkour is offline');
+    serverDot.title = t(
+      'Lierkour не запущен — доступны Copy / Save JSON',
+      'Lierkour app offline — Copy / Save JSON ready'
+    );
   }
 }
 
@@ -330,10 +366,8 @@ importBtn.addEventListener('click', async () => {
   const originalLabel = t('Добавить в Lierkour', 'Add to Lierkour');
   importBtn.textContent = t('Отправка...', 'Sending...');
 
-  const payloadWithStatus = {
-    ...extractedPayload,
-    status: statusSelect.value || 'want_to_watch',
-  };
+  const payloadWithStatus = buildPayloadWithStatus();
+  if (!payloadWithStatus) return;
 
   const result = await chrome.runtime.sendMessage({
     type: 'IMPORT_MEDIA',
@@ -363,7 +397,13 @@ importBtn.addEventListener('click', async () => {
 
   if (result?.kind === 'offline') {
     serverDot.className = 'status-dot status-dot--offline';
-    showFeedback(t('Запустите Lierkour для импорта', 'Start Lierkour to import'), 'warn');
+    showFeedback(
+      t(
+        'Запустите Lierkour для импорта или используйте Copy / Save JSON.',
+        'Start Lierkour to import, or use Copy / Save JSON.'
+      ),
+      'warn'
+    );
     return;
   }
 
@@ -373,15 +413,107 @@ importBtn.addEventListener('click', async () => {
   );
 });
 
+if (copyJsonBtn) {
+  copyJsonBtn.addEventListener('click', async () => {
+    const payload = buildPayloadWithStatus();
+    if (!payload) return;
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+      showFeedback(t('JSON скопирован в буфер обмена', 'JSON copied to clipboard'), 'success');
+    } catch {
+      showFeedback(t('Не удалось скопировать JSON', 'Could not copy JSON'), 'error');
+    }
+  });
+}
+
+if (downloadJsonBtn) {
+  downloadJsonBtn.addEventListener('click', () => {
+    const payload = buildPayloadWithStatus();
+    if (!payload) return;
+    const safeTitle =
+      String(payload.title || 'media')
+        .replace(/[^\p{L}\p{N}_-]+/gu, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, 64) || 'media';
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: 'application/json;charset=utf-8',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${safeTitle}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    showFeedback(t('JSON-файл сохранён', 'JSON file saved'), 'success');
+  });
+}
+
+function isSupportedUrl(rawUrl) {
+  if (!rawUrl) return false;
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return false;
+    }
+    const host = parsed.hostname.toLowerCase();
+    return SUPPORTED_HOSTS.some(
+      (domain) => host === domain || host.endsWith(`.${domain}`)
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function extractMediaFromTab(tab) {
+  if (!tab?.id) {
+    return {
+      ok: false,
+      error: t('Не найдена активная вкладка.', 'No active browser tab found.'),
+    };
+  }
+
+  if (!isSupportedUrl(tab.url || '')) {
+    return {
+      ok: false,
+      error: t(
+        'Откройте карточку фильма или игры на Кинопоиске, IMDb, TMDb, Letterboxd, Steam, Epic Games, GOG или Itch.io.',
+        'Open a movie, series, or game page on Kinopoisk, IMDb, TMDb, Letterboxd, Steam, Epic Games, GOG, or Itch.io.'
+      ),
+    };
+  }
+
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ['content.js'],
+    });
+    const first = results && results[0];
+    if (!first || !first.result) {
+      return {
+        ok: false,
+        error: t('Не удалось получить ответ от страницы.', 'Could not read response from the page.'),
+      };
+    }
+    return first.result;
+  } catch (err) {
+    return {
+      ok: false,
+      error: t(
+        `Ошибка чтения страницы: ${err?.message || 'нет доступа'}`,
+        `Page access error: ${err?.message || 'permission denied'}`
+      ),
+    };
+  }
+}
+
 async function init() {
   applyStaticLocale();
   const savedToken = await getSavedToken();
   tokenInput.value = savedToken;
-  if (!savedToken) {
-    tokenPanel.classList.remove('hidden');
-  }
 
-  refreshServerStatus();
+  refreshServerStatus().catch(() => {});
 
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -390,11 +522,7 @@ async function init() {
       return;
     }
 
-    const response = await chrome.runtime.sendMessage({
-      type: 'EXTRACT_MEDIA',
-      tabId: tab.id,
-      url: tab.url || '',
-    });
+    const response = await extractMediaFromTab(tab);
 
     if (response?.ok && response.data) {
       showPreview(response.data);

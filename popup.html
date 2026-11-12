@@ -13,7 +13,7 @@
           <img src="icons/icon48.png" alt="LierEX" class="brand-logo" />
           <div class="brand-text">
             <span class="brand-name">LierEX</span>
-            <span class="brand-version">v1.1</span>
+            <span class="brand-version">v1.2</span>
           </div>
         </div>
 
@@ -52,6 +52,9 @@
             OK
           </button>
         </div>
+        <p id="token-hint" class="token-hint">
+          Нужен только для отправки в Lierkour (127.0.0.1:8765). Копирование и экспорт JSON работают автономно.
+        </p>
       </section>
 
       <main id="content" class="content">
@@ -90,6 +93,15 @@
           <button id="import-btn" type="button" class="import-btn">
             Добавить в Lierkour
           </button>
+
+          <div class="secondary-actions">
+            <button id="copy-json-btn" type="button" class="secondary-btn">
+              Копировать JSON
+            </button>
+            <button id="download-json-btn" type="button" class="secondary-btn">
+              Скачать .json
+            </button>
+          </div>
         </div>
       </main>
 

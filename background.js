@@ -1,14 +1,4 @@
 const API_BASE = 'http://127.0.0.1:8765';
-const SUPPORTED_HOSTS = [
-  'kinopoisk.ru',
-  'imdb.com',
-  'themoviedb.org',
-  'letterboxd.com',
-  'store.steampowered.com',
-  'epicgames.com',
-  'gog.com',
-  'itch.io',
-];
 
 function msg(ruText, enText) {
   const lang = (
@@ -17,69 +7,6 @@ function msg(ruText, enText) {
       : 'ru') || 'ru'
   ).toLowerCase();
   return lang.startsWith('ru') ? ruText : enText;
-}
-
-function isSupportedUrl(rawUrl) {
-  if (!rawUrl) return false;
-  try {
-    const parsed = new URL(rawUrl);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      return false;
-    }
-    const host = parsed.hostname.toLowerCase();
-    return SUPPORTED_HOSTS.some(
-      (domain) => host === domain || host.endsWith(`.${domain}`)
-    );
-  } catch {
-    return false;
-  }
-}
-
-async function extractFromTab(tabId, url) {
-  if (!tabId) {
-    return {
-      ok: false,
-      error: msg('Не найдена активная вкладка.', 'No active browser tab found.'),
-    };
-  }
-
-  if (!isSupportedUrl(url)) {
-    return {
-      ok: false,
-      error: msg(
-        'Поддерживаются Кинопоиск, IMDb, TMDb, Letterboxd, Steam, Epic Games, GOG и Itch.io.',
-        'Supported sites: Kinopoisk, IMDb, TMDb, Letterboxd, Steam, Epic Games, GOG, and Itch.io.'
-      ),
-    };
-  }
-
-  try {
-    const results = await chrome.scripting.executeScript({
-      target: { tabId },
-      files: ['content.js'],
-    });
-
-    const first = results && results[0];
-    if (!first || !first.result) {
-      return {
-        ok: false,
-        error: msg(
-          'Не удалось получить ответ от страницы.',
-          'Could not read response from the page.'
-        ),
-      };
-    }
-
-    return first.result;
-  } catch (err) {
-    return {
-      ok: false,
-      error: msg(
-        `Ошибка чтения страницы: ${err?.message || 'нет доступа'}`,
-        `Page access error: ${err?.message || 'permission denied'}`
-      ),
-    };
-  }
 }
 
 async function checkServerHealth(token) {
@@ -139,7 +66,8 @@ async function importToLierkour(payload, token) {
 
     const errBody = await response.json().catch(() => ({}));
     const serverMsg =
-      errBody?.error || msg(`Ошибка сервера (${response.status})`, `Server error (${response.status})`);
+      errBody?.error ||
+      msg(`Ошибка сервера (${response.status})`, `Server error (${response.status})`);
 
     if (response.status === 401) {
       return {
@@ -161,7 +89,10 @@ async function importToLierkour(payload, token) {
     return {
       ok: false,
       kind: 'offline',
-      error: msg('Запустите Lierkour для импорта', 'Start Lierkour to import'),
+      error: msg(
+        'Запустите Lierkour для импорта или используйте Copy / Save JSON.',
+        'Start Lierkour to import, or use Copy / Save JSON.'
+      ),
     };
   } finally {
     clearTimeout(timeout);
@@ -171,11 +102,6 @@ async function importToLierkour(payload, token) {
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (!message || typeof message.type !== 'string') {
     return false;
-  }
-
-  if (message.type === 'EXTRACT_MEDIA') {
-    extractFromTab(message.tabId, message.url).then(sendResponse);
-    return true;
   }
 
   if (message.type === 'CHECK_SERVER') {
@@ -190,4 +116,3 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   return false;
 });
-

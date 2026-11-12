@@ -3,9 +3,9 @@
     "message": "LierEX"
   },
   "extDescription": {
-    "message": "Быстрый импорт фильмов, сериалов и игр с Кинопоиска, IMDb, TMDb, Letterboxd, Steam, Epic Games, GOG и Itch.io в Lierkour."
+    "message": "Извлечение метаданных фильмов, сериалов и игр (Кинопоиск, IMDb, TMDb, Steam, GOG, Epic) в JSON или Lierkour."
   },
   "actionTitle": {
-    "message": "Добавить в Lierkour"
+    "message": "LierEX — Экспорт или добавление в Lierkour"
   }
 }

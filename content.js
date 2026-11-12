@@ -1569,23 +1569,8 @@
     return { ok: true, data };
   }
 
-  // Optional direct helper kept alongside the adapters for standalone usage.
-  async function sendToLierkour(payload, token) {
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) {
-      headers['X-LierEX-Token'] = token;
-    }
-    const response = await fetch('http://127.0.0.1:8765/api/import', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-    });
-    return response;
-  }
-
   // Expose cleanly without throwing on repeated script injections.
   window.__lierexExtractMedia = extractMediaData;
-  window.__lierexSendToLierkour = sendToLierkour;
 
   return extractMediaData();
 })();
